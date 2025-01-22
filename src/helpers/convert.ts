@@ -49,14 +49,17 @@ export const convertFile = async (file: File): Promise<ConversionResult> => {
             canvas.height = img.height;
             ctx.drawImage(img, 0, 0);
 
-            // Get raw pixel data
-            const pixelData = ctx.getImageData(
-              0,
-              0,
-              img.width,
-              img.height
-            ).data;
-            console.log("Pixel data extracted from canvas.");
+            // Get raw pixel data (RGBA format)
+            const pixelData = ctx.getImageData(0, 0, img.width, img.height).data;
+            
+            // Convert RGBA to RGB
+            const rgb = new Uint8Array(img.width * img.height * 3);
+            for (let i = 0, j = 0; i < pixelData.length; i += 4, j += 3) {
+              rgb[j] = pixelData[i];      // R
+              rgb[j + 1] = pixelData[i + 1]; // G
+              rgb[j + 2] = pixelData[i + 2]; // B
+              // Skip alpha channel
+            }
 
             // Prepare the header (magic number + width + height)
             const headerBuffer = new ArrayBuffer(14);
@@ -71,11 +74,9 @@ export const convertFile = async (file: File): Promise<ConversionResult> => {
             headerView.setUint32(10, img.height, false); // big-endian
 
             // Combine header and pixel data
-            const fullData = new Uint8Array(
-              headerBuffer.byteLength + pixelData.length
-            );
+            const fullData = new Uint8Array(headerBuffer.byteLength + rgb.length);
             fullData.set(new Uint8Array(headerBuffer), 0);
-            fullData.set(pixelData, headerBuffer.byteLength);
+            fullData.set(rgb, headerBuffer.byteLength);
 
             // Create the .cheese file as a Blob
             const cheeseBlob = new Blob([fullData], {
