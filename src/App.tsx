@@ -1,16 +1,12 @@
 import { useState } from "react";
-import { convertFile } from "./helpers/convert.js";
+import { convertFile, ConversionResult } from "./helpers/convert";
 import "./App.css";
 
 function App() {
-  const [imageData, setImageData] = useState<{
-    canvas: HTMLCanvasElement;
-    downloadUrl: string;
-    outputFileName: string;
-  } | null>(null);
+  const [imageData, setImageData] = useState<ConversionResult | null>(null);
 
-  const handleFileChange = async (e) => {
-    const file = e.target.files[0];
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
     if (file) {
       try {
         const result = await convertFile(file);

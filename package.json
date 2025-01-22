@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
-  "homepage": "https://weeboo.github.io/cheese",
+  "homepage": "https://YouMumLol.github.io/cheese",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
