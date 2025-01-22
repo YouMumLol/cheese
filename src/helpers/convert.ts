@@ -10,7 +10,7 @@ export const convertFile = async (file: File): Promise<ConversionResult> => {
   return new Promise<ConversionResult>((resolve, reject) => {
     fileReader.onload = async (event: ProgressEvent<FileReader>) => {
       if (!event.target?.result) {
-        reject(new Error('Failed to read file'));
+        reject(new Error("Failed to read file"));
         return;
       }
 
@@ -50,12 +50,17 @@ export const convertFile = async (file: File): Promise<ConversionResult> => {
             ctx.drawImage(img, 0, 0);
 
             // Get raw pixel data (RGBA format)
-            const pixelData = ctx.getImageData(0, 0, img.width, img.height).data;
-            
+            const pixelData = ctx.getImageData(
+              0,
+              0,
+              img.width,
+              img.height
+            ).data;
+
             // Convert RGBA to RGB
             const rgb = new Uint8Array(img.width * img.height * 3);
             for (let i = 0, j = 0; i < pixelData.length; i += 4, j += 3) {
-              rgb[j] = pixelData[i];      // R
+              rgb[j] = pixelData[i]; // R
               rgb[j + 1] = pixelData[i + 1]; // G
               rgb[j + 2] = pixelData[i + 2]; // B
               // Skip alpha channel
@@ -74,7 +79,9 @@ export const convertFile = async (file: File): Promise<ConversionResult> => {
             headerView.setUint32(10, img.height, false); // big-endian
 
             // Combine header and pixel data
-            const fullData = new Uint8Array(headerBuffer.byteLength + rgb.length);
+            const fullData = new Uint8Array(
+              headerBuffer.byteLength + rgb.length
+            );
             fullData.set(new Uint8Array(headerBuffer), 0);
             fullData.set(rgb, headerBuffer.byteLength);
 
@@ -121,28 +128,19 @@ export const convertFile = async (file: File): Promise<ConversionResult> => {
           console.log("Width * Height:", width * height);
           console.log("Width * Height * 4:", width * height * 4);
 
-          // Extract raw pixel data
-          const pixelData = buffer.slice(14);
+          // Read pixel data directly from the buffer
+          const pixelData = buffer.slice(14); // This should be correct
           console.log("Pixel data length:", pixelData.byteLength);
-          console.log("Buffer total length:", buffer.byteLength);
           console.log(
-            "First few bytes of pixel data:",
-            Array.from(pixelData.slice(0, 10))
+            "Pixel data with added a channel size estimate:",
+            (pixelData.byteLength / 3) * 4
           );
+          // Calculate expected size for RGB (3 bytes per pixel)
+          const expectedSizeRGB = width * height * 3;
+          console.log("Expected pixel data length (RGB):", expectedSizeRGB);
 
-          // Calculate expected size for RGBA (4 bytes per pixel)
-          const expectedSize = width * height * 4;
-          console.log("Expected pixel data length:", expectedSize);
-
-          // Check if pixelData is valid
-          if (!pixelData || pixelData.byteLength === 0) {
-            console.error("Invalid pixel data extracted.");
-            reject(new Error("Invalid pixel data extracted."));
-            return;
-          }
-
-          // Ensure pixelData length matches expected size
-          if (pixelData.byteLength !== expectedSize) {
+          // Ensure pixelData length matches expected size for RGB
+          if (pixelData.byteLength !== expectedSizeRGB) {
             console.error("Pixel data length does not match expected size.");
             reject(
               new Error("Pixel data length does not match expected size.")
@@ -151,9 +149,26 @@ export const convertFile = async (file: File): Promise<ConversionResult> => {
           }
 
           // RGBA data is already in the correct format, no conversion needed
-          const rgbaData = new Uint8ClampedArray(pixelData);
+
+          // Fill the RGBA array with RGB data and add an alpha channel
+          const rgbaData = new Uint8ClampedArray(width * height * 4);
+          for (let i = 0; i < pixelData.length; i += 3) {
+            const rgbaIndex = (i / 3) * 4;
+            rgbaData[rgbaIndex] = pixelData[i]; // R
+            rgbaData[rgbaIndex + 1] = pixelData[i + 1]; // G
+            rgbaData[rgbaIndex + 2] = pixelData[i + 2]; // B
+            rgbaData[rgbaIndex + 3] = 255; // A (fully opaque)
+          }
+
+          console.log("actual rgba size", rgbaData.byteLength);
 
           const imageData = new ImageData(rgbaData, width, height);
+          console.log(
+            "ImageData created with width:",
+            imageData.width,
+            "height:",
+            imageData.height
+          );
 
           // Create the .jpg file as a Blob
           const canvas = document.createElement("canvas");
