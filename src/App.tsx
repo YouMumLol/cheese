@@ -63,7 +63,7 @@ function App() {
             <div
               style={{
                 maxWidth: "90vw",
-                maxHeight: "80vh",
+                maxHeight: "70vh",
                 overflow: "auto",
                 marginBottom: "20px",
               }}
